@@ -17,14 +17,15 @@ VCCA-private:
 ### Training
 5 epochs:
 
-<img src="https://github.com/edchengg/VCCA_pytorch/blob/master/results/sample1_5.png" width="300">
-<img src="https://github.com/edchengg/VCCA_pytorch/blob/master/results/sample2_5.png" width="300">
+view1            |  view2
+:-------------------------:|:-------------------------:
+![](https://github.com/edchengg/VCCA_pytorch/blob/master/results/sample1_5.png)  |  ![](https://github.com/edchengg/VCCA_pytorch/blob/master/results/sample2_5.png)
 
 50 epochs:
 
-<img src="https://github.com/edchengg/VCCA_pytorch/blob/master/results/sample1_50.png" width="300">
-<img src="https://github.com/edchengg/VCCA_pytorch/blob/master/results/sample2_50.png" width="300">
-
+view1            |  view2
+:-------------------------:|:-------------------------:
+![](https://github.com/edchengg/VCCA_pytorch/blob/master/results/sample1_50.png)  |  ![](https://github.com/edchengg/VCCA_pytorch/blob/master/results/sample2_50.png)
 ### Generation
 
 <img src="https://github.com/edchengg/VCCA_pytorch/blob/master/results/final.png" width="300">
@@ -34,9 +35,9 @@ The model is evaluated on a noisy version of MNIST dataset. [Vahid Noroozi](http
 
 The dataset was large and could not get uploaded on GitHub. So it is uploaded on another server. You can download the data from:
 
-[view1:](https://www2.cs.uic.edu/~vnoroozi/noisy-mnist/noisymnist_view1.gz)
+[view1](https://www2.cs.uic.edu/~vnoroozi/noisy-mnist/noisymnist_view1.gz)
 
-[view2:](https://www2.cs.uic.edu/~vnoroozi/noisy-mnist/noisymnist_view2.gz)
+[view2](https://www2.cs.uic.edu/~vnoroozi/noisy-mnist/noisymnist_view2.gz)
 
 save it in the same directory with python code.
 
