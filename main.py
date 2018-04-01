@@ -13,9 +13,10 @@ CUDA = False
 SEED = 1
 BATCH_SIZE = 128
 LOG_INTERVAL = 10
-EPOCHS = 10
+EPOCHS = 50
 ZDIMS = 20
-
+PDIMS = 30
+PRIVATE = True
 # I do this so that the MNIST dataset is downloaded where I want it
 os.chdir("/Users/edison/PycharmProjects/vcca_pytorch")
 
@@ -48,7 +49,7 @@ train_loader = torch.utils.data.DataLoader(
 #    datasets.MNIST('data', train=False, transform=transforms.ToTensor()),
 #    batch_size=BATCH_SIZE, shuffle=True, **kwargs)
 
-model = VCCA()
+model = VCCA(PRIVATE)
 
 if CUDA:
     model.cuda()
@@ -76,8 +77,39 @@ def loss_function(recon_x1, recon_x2, x1, x2, mu, logvar) -> Variable:
     # KLD tries to push the distributions as close as possible to unit Gaussian
     return BCE1 + KLD + BCE2
 
+def loss_function_private(recon_x1, recon_x2, x1, x2, mu, logvar, mu1, logvar1, mu2, logvar2) -> Variable:
+    # how well do input x and output recon_x agree?
+    BCE1 = F.binary_cross_entropy(recon_x1, x1.view(-1, 784))
+    BCE2 = F.binary_cross_entropy(recon_x2, x2.view(-1, 784))
+
+    # KLD is Kullback–Leibler divergence -- how much does one learned
+    # distribution deviate from another, in this specific case the
+    # learned distribution from the unit Gaussian
+
+    # see Appendix B from VAE paper:
+    # Kingma and Welling. Auto-Encoding Variational Bayes. ICLR, 2014
+    # https://arxiv.org/abs/1312.6114
+    # - D_{KL} = 0.5 * sum(1 + log(sigma^2) - mu^2 - sigma^2)
+    # note the negative D_{KL} in appendix B of the paper
+    KLD = -0.5 * torch.sum(1 + logvar - mu.pow(2) - logvar.exp())
+    # Normalise by same number of elements as in reconstruction
+    KLD /= BATCH_SIZE * 784
+
+    KLD1 = -0.5 * torch.sum(1 + logvar1 - mu1.pow(2) - logvar1.exp())
+    # Normalise by same number of elements as in reconstruction
+    KLD1 /= BATCH_SIZE * 784
+
+    KLD2 = -0.5 * torch.sum(1 + logvar2 - mu2.pow(2) - logvar2.exp())
+    # Normalise by same number of elements as in reconstruction
+    KLD2 /= BATCH_SIZE * 784
+
+    # BCE tries to make our reconstruction as accurate as possible
+    # KLD tries to push the distributions as close as possible to unit Gaussian
+    return BCE1 + KLD + KLD1 + KLD2 + BCE2
+
+
 # Dr Diederik Kingma: as if VAEs weren't enough, he also gave us Adam!
-optimizer = optim.Adam(model.parameters(), lr=1e-3)
+optimizer = optim.Adam(model.parameters(), lr=0.0001)
 
 
 def train(epoch):
@@ -94,10 +126,14 @@ def train(epoch):
             data2 = data2.cuda()
         optimizer.zero_grad()
 
-        # push whole batch of data through VAE.forward() to get recon_loss
-        recon_batch1, recon_batch2, mu, logvar = model(data1)
-        # calculate scalar loss
-        loss = loss_function(recon_batch1, recon_batch2, data1, data2, mu, logvar)
+        if not model.private:
+            # push whole batch of data through VAE.forward() to get recon_loss
+            recon_batch1, recon_batch2, mu, log_var = model(data1, data2)
+            # calculate scalar loss
+            loss = loss_function(recon_batch1, recon_batch2, data1, data2, mu, log_var)
+        else:
+            recon_batch1, recon_batch2, mu, log_var, mu1, log_var1, mu2, log_var2 = model(data1, data2)
+            loss = loss_function_private(recon_batch1, recon_batch2, data1, data2, mu, log_var, mu1, log_var1, mu2, log_var2)
         # calculate the gradient of the loss w.r.t. the graph leaves
         # i.e. input variables -- by the power of pytorch!
         loss.backward()
@@ -117,10 +153,14 @@ def train(epoch):
 for epoch in range(1, EPOCHS + 1):
     train(epoch)
     #est(epoch)
-
+    model.eval()
     # 64 sets of random ZDIMS-float vectors, i.e. 64 locations / MNIST
     # digits in latent space
-    sample = Variable(torch.randn(64, ZDIMS))
+    if model.private:
+        sample = Variable(torch.randn(64, PDIMS+ZDIMS))
+    else:
+        sample = Variable(torch.randn(64, ZDIMS))
+
     if CUDA:
         sample = sample.cuda()
     sample1 = model.decode_1(sample).cpu()
@@ -128,8 +168,11 @@ for epoch in range(1, EPOCHS + 1):
     # save out as an 8x8 matrix of MNIST digits
     # this will give you a visual idea of how well latent space can generate things
     # that look like digits
-    save_image(sample1.data.view(64, 1, 28, 28),
-               'results/sample1_' + str(epoch) + '.png')
-    save_image(sample2.data.view(64, 1, 28, 28),
-               'results/sample2_' + str(epoch) + '.png')
+    if epoch % 5 == 0:
+        save_image(sample1.data.view(64, 1, 28, 28),
+                   'results/sample1_' + str(epoch) + '.png')
+        save_image(sample2.data.view(64, 1, 28, 28),
+                   'results/sample2_' + str(epoch) + '.png')
 
+with open('model.pt','wb') as f:
+    torch.save(model, f)
