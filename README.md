@@ -1,4 +1,4 @@
-# VCCA: Variational Canonical Correlation Analysis
+# VCCA: Variational Canonical Correlation Analysis 
 
 This is an Pytorch implementation of [Deep Variational Canonical Correlation Analysis (VCCA)](https://arxiv.org/abs/1610.03454) in Python.
 
@@ -48,7 +48,7 @@ The following are the differences between my implementation and the original pap
 
 ### Other Implementations
 
-The following are the other implementations of VCCA in Tensorflow:
+The following are the other implementations of VCCA in Tensorflow,
 
 * [Tensorflow implementation](http://ttic.uchicago.edu/~wwang5/papers/vcca_tf0.9_code.tgz) from Wang, Weiran's website (http://ttic.uchicago.edu/~wwang5/)
 
